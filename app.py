@@ -10,4 +10,5 @@ def lwinfo():
 def lwphone():
     return "987654321"
 
-app.run(host="0.0.0.0")
+if __name__ == "__main__":
+    app.run(host="0.0.0.0")
