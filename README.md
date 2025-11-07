@@ -1,93 +1,217 @@
-# Docker CI/CD Project using Jenkins
+# 🚀 Flask App CI/CD Pipeline with Jenkins, Docker & GitHub Integration
 
-This project demonstrates how to build and deploy a simple **Flask web application** using **Docker** and **Jenkins CI/CD pipeline**.  
-It showcases the automation workflow from code to container deployment.
-
----
-
-## 🚀 Project Overview
-
-The application is a lightweight Python Flask app exposing two endpoints:
-- `/info` → Returns basic information message.
-- `/phone` → Returns a sample phone number.
-
-### 🔧 Tech Stack
-- **Python (Flask Framework)**
-- **Docker (Containerization)**
-- **Jenkins (CI/CD Automation)**
-- **GitHub (Version Control)**
-- **Vagrant / EuroLinux Box (Virtual Environment)**
+This project demonstrates a complete **CI/CD pipeline** for a Flask-based web application using **Jenkins**, **Docker**, and **GitHub**.  
+The pipeline is fully automated — from code changes on GitHub to Docker image build, test, and push to DockerHub.
 
 ---
 
-## 🐳 Docker Setup
+## 🧩 Tech Stack
 
-**Dockerfile**
-```dockerfile
-FROM redhat/ubi8
-RUN yum install python3 -y
-RUN pip3 install flask
-COPY app.py /app.py
-CMD ["python3", "/app.py"]
+- **Frontend / Backend:** Python (Flask)
+- **Version Control:** Git & GitHub
+- **CI/CD Tool:** Jenkins
+- **Containerization:** Docker
+- **Image Registry:** DockerHub
+- **Testing:** pytest
 
-### 🧠 Build & Run the Container
+---
+
+## 📁 Project Structure
+```
+├── app.py # Main Flask application
+├── requirements.txt # Python dependencies
+├── Dockerfile # Docker build configuration
+├── test_app.py # Unit tests for Flask app
+└── README.md # Documentation
+
+
+## ⚙️ **Prerequisites**
+
+Before setting up the pipeline, ensure the following are **installed and configured**:
+
+* **Git** (for version control)
+* **Python 3.x** (to run Flask app)
+* **Docker** (for containerization)
+* **Jenkins** (for CI/CD automation)
+* **DockerHub Account** (to push Docker images)
+* **GitHub Repository** (for source code management)
+
+## 🧠 Build & Run the Container (Locally)
+
+If you want to test the application locally before automating via Jenkins:
+
+```bash
+# Clone the project
+git clone https://github.com/<your-username>/<your-repo-name>.git
+cd <your-repo-name>
+
+# Build Docker image
 docker build -t flask-app .
+
+# Run the container
 docker run -d -p 5000:5000 flask-app
 
-Access the app at → http://localhost:5000/info
+Once the container runs, visit 👉 http://localhost:5000
+ to see your Flask app running.
 
-🔁 Jenkins CI/CD Setup
+## 🧪 Run Tests
 
-This project uses a Freestyle Jenkins Pipeline to automate:
+Run unit tests inside the container to ensure your application is functioning correctly.
 
-Source Code Integration: Pulls code from GitHub repository.
-
-Build Stage: Builds Docker image from Dockerfile.
-
-Test Stage: Runs test cases using pytest for validation.
-
-Deployment Stage: Runs the container automatically on the server.
-
-Jenkins Configuration Steps:
-
-Create a new Freestyle project.
-
-Connect with GitHub repository using credentials.
-
-Add build steps:
-
-Execute shell command to build Docker image:
-
-docker build -t flask-app .
-
-
-Run test file:
-
+```bash
+# Run tests
 pytest test_app.py
 
+If all tests pass ✅, Jenkins will automatically proceed to the next stage (image push).
 
-Deploy container:
+☁️ Push Image to DockerHub (Automated via Jenkins)
 
-docker run -d -p 5000:5000 flask-app
+The Docker image push process is completely automated in Jenkins — no manual steps required.
 
-🧩 Folder Structure
-myapp/
-│
-├── app.py          # Flask Application
-├── Dockerfile      # Containerization Instructions
-├── test_app.py     # Unit Test File
-└── README.md       # Project Documentation
+🔒 Jenkins handles:
 
-🎯 Output
+Logging into DockerHub using stored credentials
 
-Application running in a Docker container
+Tagging the built image with your DockerHub repository name
 
-Jenkins automating the entire CI/CD flow
+Pushing the image to DockerHub
 
-Flask app accessible on browser at port 5000
+Example (runs inside Jenkins shell step)
+# Build image
+docker build -t flask-app .
 
-💬 Author
+# Login securely using Jenkins credentials
+echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+# Tag & push image
+docker tag flask-app $DOCKERHUB_USERNAME/flask-app:latest
+docker push $DOCKERHUB_USERNAME/flask-app:latest
+
+
+## 🧠 Jenkins credentials are stored securely under:
+Manage Jenkins → Credentials → Global → Add Credentials
+
+Never hardcode credentials in your script or Jenkinsfile.
+
+## 🔁 Jenkins CI/CD Setup
+
+This project uses a Freestyle Jenkins job integrated with GitHub and DockerHub.
+The pipeline is configured to run automatically whenever you push changes to GitHub.
+
+## 🧩 Pipeline Workflow
+
+Trigger: Code pushed to GitHub → Jenkins job automatically starts
+
+Checkout: Jenkins pulls the latest code
+
+Build: Jenkins runs docker build to create the Docker image
+
+Test: Jenkins executes pytest test_app.py to validate the app
+
+Push: Jenkins logs in to DockerHub and pushes the new image
+
+Deploy: Jenkins can optionally deploy or run the new container
+
+## ⚡ Jenkins Configuration Steps
+### 1️⃣ Install Required Plugins
+
+Git Plugin
+
+Docker Plugin
+
+Docker Pipeline Plugin
+
+Credentials Binding Plugin
+
+### 2️⃣ Configure Jenkins Credentials
+
+Add your DockerHub credentials in Jenkins:
+
+Go to: Manage Jenkins → Credentials → Add Credentials
+
+Type: Username and Password
+
+ID Example: dockerhub_credentials
+
+### 3️⃣ Create Jenkins Job
+
+Choose Freestyle Project
+
+Under Source Code Management, select Git → Add your repository URL
+
+Under Build Triggers, select:
+
+✅ GitHub hook trigger for GITScm polling
+
+or ✅ Poll SCM (H/5 * * * *) for every 5 minutes
+
+### 4️⃣ Add Build Steps
+
+Add the following Shell Command inside Jenkins:
+
+# Build Docker image
+docker build -t flask-app .
+
+# Run tests
+pytest test_app.py
+
+# Login & Push Image
+echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+docker tag flask-app $DOCKERHUB_USERNAME/flask-app:latest
+docker push $DOCKERHUB_USERNAME/flask-app:latest
+
+# Optional: Deploy the container
+docker run -d -p 5000:5000 $DOCKERHUB_USERNAME/flask-app:latest
+
+## 🔄 Automated Trigger on GitHub Changes
+
+Jenkins automatically starts the pipeline whenever there’s a new commit or PR in GitHub.
+
+## 🧠 Methods:
+
+Poll SCM :
+
+In Jenkins → Build Triggers → Enable Poll SCM
+
+Schedule example: * * * * * (checks every  minute)
+
+## 📦 DockerHub Output
+
+After a successful Jenkins build, your image is pushed automatically to your DockerHub repository.
+
+Example:
+
+Successfully built abc123
+Successfully tagged shikhapal/flask-app:latest
+The push refers to repository [docker.io/shikhapal/flask-app]
+latest: digest: sha256:... size: 1783
+
+
+### ✅ You can verify this on DockerHub
+ under your repositories.
+
+## 🎯 Summary
+Step	Description	Automated?
+Code Push	Push code to GitHub	✅
+Build	Jenkins builds Docker image	✅
+Test	Run unit tests	✅
+Push to DockerHub	Jenkins pushes image	✅
+Deploy	Jenkins runs container	✅ (optional)
+🌟 Outcome
+
+This setup ensures:
+
+Continuous Integration and Continuous Deployment
+
+Secure Credential Handling
+
+Automated Trigger on Code Changes
+
+Fully Dockerized and Reproducible Builds
+
+## ✨ Author
 
 👩‍💻 Shikha Pal
-Passionate about DevOps, Cloud, and Automation 🚀
-GitHub Profile
+💬 Cloud & DevOps Enthusiast
+🔗 
+ | GitHub
